@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Food World App</title>
+<style>
+:root{--bg:#0f0f10;--card:#1b1b1f;--accent:#ff9800;--muted:#9aa0a6}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#fff}
+header{position:sticky;top:0;z-index:10;background:linear-gradient(45deg,#000,#3a0066);padding:12px;text-align:center}
+header h1{margin:0;color:var(--accent)}
+nav{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+nav button{padding:8px 12px;border:none;border-radius:10px;background:#222;color:#fff;cursor:pointer}
+nav button.active{background:var(--accent);color:#000}
+.container{padding:12px}
+.search{width:100%;padding:10px;border-radius:10px;border:none;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,.3)}
+.card img{width:100%;height:130px;object-fit:cover}
+.card h3{margin:8px;color:#ffd54f}
+.card p{margin:0 8px 8px;color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:0 8px 10px}
+.btn{padding:6px 10px;border:none;border-radius:10px;cursor:pointer}
+.like{background:#e53935;color:#fff}
+.add{background:#43a047;color:#fff}
+.badge{background:var(--accent);color:#000;border-radius:999px;padding:2px 8px;margin-left:6px}
+.hidden{display:none}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--card);border-radius:12px;padding:10px;display:flex;justify-content:space-between;align-items:center}
+.small{color:var(--muted);font-size:12px}
+.input{width:100%;padding:10px;border-radius:10px;border:none;margin:8px 0}
+.center{max-width:420px;margin:20px auto}
+.footer{position:fixed;bottom:0;left:0;right:0;background:#111;padding:10px;display:flex;justify-content:space-around}
+.footer button{background:none;border:none;color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍔 Food World</h1>
+  <nav>
+    <button id="tab-home" class="active" onclick="go('home')">Home</button>
+    <button id="tab-fav" onclick="go('fav')">Favorites</button>
+    <button id="tab-cart" onclick="go('cart')">Cart <span id="cartCount" class="badge">0</span></button>
+    <button id="tab-profile" onclick="go('profile')">Profile</button>
+  </nav>
+</header>
+
+<div class="container" id="home">
+  <input class="search" placeholder="Search food..." oninput="searchFood(this.value)">
+  <div class="grid" id="foodGrid"></div>
+</div>
+
+<div class="container hidden" id="fav">
+  <h3>Your Favorites</h3>
+  <div class="list" id="favList"></div>
+</div>
+
+<div class="container hidden" id="cart">
+  <h3>Your Cart</h3>
+  <div class="list" id="cartList"></div>
+  <h3>Total: ৳ <span id="total">0</span></h3>
+  <button class="btn add" onclick="checkout()">Checkout</button>
+</div>
+
+<div class="container hidden" id="profile">
+  <div class="center">
+    <h3>Login</h3>
+    <input id="name" class="input" placeholder="Enter your name">
+    <button class="btn add" onclick="login()">Login</button>
+    <p id="welcome"></p>
+  </div>
+</div>
+
+<div class="footer">
+  <button onclick="go('home')">🏠</button>
+  <button onclick="go('fav')">❤️</button>
+  <button onclick="go('cart')">🛒</button>
+  <button onclick="go('profile')">👤</button>
+</div>
+
+<script>
+const foods=[
+ {name:'Pizza',price:300,img:'https://source.unsplash.com/400x300/?pizza'},
+ {name:'Burger',price:200,img:'https://source.unsplash.com/400x300/?burger'},
+ {name:'Biryani',price:250,img:'https://source.unsplash.com/400x300/?biryani'},
+ {name:'Fried Rice',price:180,img:'https://source.unsplash.com/400x300/?fried-rice'},
+ {name:'Cake',price:150,img:'https://source.unsplash.com/400x300/?cake'},
+ {name:'Ice Cream',price:120,img:'https://source.unsplash.com/400x300/?icecream'}
+];
+
+let fav=JSON.parse(localStorage.getItem('fav'))||[];
+let cart=JSON.parse(localStorage.getItem('cart'))||[];
+
+function save(){localStorage.setItem('fav',JSON.stringify(fav));localStorage.setItem('cart',JSON.stringify(cart));updateCartCount();}
+
+function card(f){return `
+<div class='card'>
+<img src='${f.img}'>
+<h3>${f.name}</h3>
+<p>Price: ৳${f.price}</p>
+<div class='row'>
+<button class='btn like' onclick="toggleFav('${f.name}')">❤</button>
+<button class='btn add' onclick="addCart('${f.name}')">Add</button>
+</div>
+</div>`}
+
+function render(list=foods){document.getElementById('foodGrid').innerHTML=list.map(card).join('')}
+
+function searchFood(q){q=q.toLowerCase();render(foods.filter(f=>f.name.toLowerCase().includes(q)))}
+
+function toggleFav(name){if(fav.includes(name)){fav=fav.filter(x=>x!==name)}else{fav.push(name)};save();renderFav()}
+
+function renderFav(){const el=document.getElementById('favList');
+el.innerHTML=fav.map(n=>`<div class='item'><span>${n}</span><button class='btn like' onclick="toggleFav('${n}')">Remove</button></div>`).join('')||'<p class="small">No favorites yet</p>'}
+
+function addCart(name){cart.push(name);save();renderCart()}
+
+function renderCart(){const el=document.getElementById('cartList');
+let total=0;
+el.innerHTML=cart.map((n,i)=>{const f=foods.find(x=>x.name===n);total+=f.price;return `<div class='item'><span>${n}</span><div><span>৳${f.price}</span> <button class='btn like' onclick="removeCart(${i})">X</button></div></div>`}).join('')||'<p class="small">Cart is empty</p>';
+document.getElementById('total').innerText=total}
+
+function removeCart(i){cart.splice(i,1);save();renderCart()}
+
+function updateCartCount(){document.getElementById('cartCount').innerText=cart.length}
+
+function checkout(){if(!cart.length)return alert('Cart empty');alert('Order placed! 🎉');cart=[];save();renderCart()}
+
+function login(){const n=document.getElementById('name').value.trim();if(!n)return;localStorage.setItem('user',n);document.getElementById('welcome').innerText='Welcome, '+n}
+
+function loadUser(){const u=localStorage.getItem('user');if(u){document.getElementById('welcome').innerText='Welcome, '+u}}
+
+function go(id){['home','fav','cart','profile'].forEach(x=>{
+ document.getElementById(x).classList.add('hidden');
+ docu
